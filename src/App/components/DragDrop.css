@@ -1,0 +1,64 @@
+[data-rbd-draggable-context-id] {
+  user-select: none;
+}
+
+/* Drag handle styles */
+[data-rbd-drag-handle-context-id] {
+  cursor: grab;
+}
+
+[data-rbd-drag-handle-context-id]:active {
+  cursor: grabbing;
+}
+
+/* Animation for being dragged */
+.dragging {
+  opacity: 0.8;
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Drop area highlight */
+.droppable-highlight {
+  background-color: rgba(74, 144, 226, 0.1);
+  border: 2px dashed rgba(74, 144, 226, 0.5);
+}
+
+/* Drag layer (the floating clone during drag) */
+.custom-drag-layer {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Style for the drop indicator */
+.drop-indicator {
+  position: absolute;
+  background-color: rgba(74, 144, 226, 0.2);
+  border: 2px dashed rgba(74, 144, 226, 0.6);
+  border-radius: 4px;
+  z-index: 5;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+/* Animation for when an item is dropped */
+@keyframes dropAnimation {
+  0% {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.drop-animation {
+  animation: dropAnimation 0.3s ease forwards;
+}

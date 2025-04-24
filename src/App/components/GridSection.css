@@ -1,0 +1,48 @@
+/* Timestamp card in grid */
+.grid-item {
+  z-index: 2;
+  position: absolute;
+  width: 395px !important;
+  height: 125px !important;
+  transition: transform 0.2s ease;
+}
+
+.grid-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.free-position-grid {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  background-color: #fafafa;
+  background-image: linear-gradient(rgba(200, 200, 200, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 200, 200, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  min-height: 400px;
+}
+
+.free-grid-item {
+  position: absolute;
+  z-index: 2;
+  transition: box-shadow 0.2s ease;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+.free-grid-item:hover {
+  z-index: 3;
+}
+
+.free-grid-item.dragging {
+  z-index: 10;
+  transform: scale(1.02);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.drag-handle {
+  cursor: move;
+}

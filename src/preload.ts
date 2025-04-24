@@ -3,7 +3,6 @@ import { contextBridge, ipcRenderer } from 'electron';
 interface TimestampData {
   id: string;
   timestamp: string;
-  isNew?: boolean;
 }
 
 interface ElectronAPI {

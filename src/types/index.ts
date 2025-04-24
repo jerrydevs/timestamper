@@ -2,15 +2,14 @@
 export interface TimestampData {
   timestamp: string;
   id: string;
-  isNew?: boolean;
 }
 
 // Define grid position for timestamps in the right panel
 export interface GridItem {
   id: string;
   timestampData: TimestampData;
-  gridArea: string;
-  position: { row: number; col: number };
+  position: { x: number; y: number };
+  isNew?: boolean;
 }
 
 // Define the Electron API

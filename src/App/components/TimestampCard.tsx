@@ -6,9 +6,10 @@ interface TimestampCardProps {
   timestamp: string;
   id: string;
   onDelete: (id: string) => void;
+  draggable?: boolean;
+  forwardRef?: React.RefObject<HTMLDivElement> | ((node: HTMLDivElement) => void);
   dragHandleProps?: any;
   draggableProps?: any;
-  forwardRef?: React.Ref<HTMLDivElement>;
 }
 
 export const CARD_WIDTH = 395;
@@ -18,10 +19,16 @@ const TimestampCard: React.FC<TimestampCardProps> = ({
   timestamp,
   id,
   onDelete,
+  draggable = false,
+  forwardRef,
   dragHandleProps,
   draggableProps,
-  forwardRef,
 }) => {
+  const handleDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onDelete(id);
+  };
+
   const userTimezone = moment.tz.guess();
 
   const formatTimestamp = (timestamp: string) => {
@@ -53,11 +60,28 @@ const TimestampCard: React.FC<TimestampCardProps> = ({
     return <div className="error-message">Invalid timestamp</div>;
   }
 
+  if (forwardRef && draggableProps) {
+    return (
+      <div ref={forwardRef as any} {...draggableProps} className="timestamp-card">
+        <div {...dragHandleProps} className="timestamp-card-header drag-handle">
+          <span className="timestamp-value">{timestamp}</span>
+          <button className="delete-button" onClick={handleDelete} aria-label="Delete timestamp">
+            <Trash2 size={16} />
+          </button>
+        </div>
+        <div className="timestamp-card-body">
+          <div className="timestamp-formatted">{formattedTime.utc}</div>
+          <div className="timestamp-formatted">{formattedTime.local}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="timestamp-card" ref={forwardRef} {...dragHandleProps} {...draggableProps}>
-      <div className="timestamp-card-header">
+    <div className="timestamp-card">
+      <div className="timestamp-card-header drag-handle">
         <span className="timestamp-value">{timestamp}</span>
-        <button className="delete-button" onClick={() => onDelete(id)} aria-label="Delete timestamp">
+        <button className="delete-button" onClick={handleDelete} aria-label="Delete timestamp">
           <Trash2 size={16} />
         </button>
       </div>

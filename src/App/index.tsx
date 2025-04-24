@@ -1,23 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { DragDropContext } from 'react-beautiful-dnd';
 
 import { GridItem, TimestampData } from '../types';
 import '../index.css';
-import IntakeSection from './components/IntakeSection';
-import GridSection, { GRID_GAP } from './components/GridSection';
+import GridSection from './components/GridSection';
 import { CARD_WIDTH, CARD_HEIGHT } from './components/TimestampCard';
 
-const MAX_INTAKE_TIMESTAMPS = 20;
 const NEW_TIMESTAMP_HIGHLIGHT_DURATION = 1000;
 
 const App: React.FC = () => {
-  // timestamps just found from clipboard (left panel)
-  const [intakeTimestamps, setIntakeTimestamps] = useState<TimestampData[]>([]);
-  // timestamps that are stored in the grid (right panel)
   const [gridItems, setGridItems] = useState<GridItem[]>([]);
-
-  const [gridDimensions, setGridDimensions] = useState({ rows: 3, cols: 2 });
+  const [gridDimensions, setGridDimensions] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     if (window.electronAPI) {
@@ -26,14 +19,25 @@ const App: React.FC = () => {
 
     if (window.electronAPI) {
       window.electronAPI.onTimestamp((timestamp: TimestampData) => {
-        const newTimestamp = {
-          ...timestamp,
+        const freePosition = findFreePosition();
+        console.log({ freePosition });
+        const newGridItem: GridItem = {
+          id: timestamp.id,
+          timestampData: timestamp,
+          position: freePosition,
           isNew: true,
         };
-        setIntakeTimestamps(prev => [newTimestamp, ...prev].slice(0, MAX_INTAKE_TIMESTAMPS));
+        setGridItems(prev => [...prev, newGridItem]);
 
         setTimeout(() => {
-          setIntakeTimestamps(prev => prev.map(ts => ({ ...ts, isNew: false })));
+          setGridItems(prev =>
+            prev.map(item => {
+              if (item.id === newGridItem.id) {
+                return { ...item, isNew: false };
+              }
+              return item;
+            })
+          );
         }, NEW_TIMESTAMP_HIGHLIGHT_DURATION);
       });
     }
@@ -45,126 +49,92 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const clearIntakeTimestamps = () => {
-    setIntakeTimestamps([]);
-  };
+  useEffect(() => {
+    const handleResize = () => {
+      if (gridDimensions.width !== 0) {
+        setGridDimensions({ width: gridDimensions.width, height: gridDimensions.height });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [gridDimensions.width, gridDimensions.height]);
+
   const clearGridTimestamps = () => {
     setGridItems([]);
   };
 
-  const handleGridResize = (dimensions: { rows: number; cols: number }) => {
+  const handleGridResize = (dimensions: { width: number; height: number }) => {
     setGridDimensions(dimensions);
   };
 
-  const handleGridItemPositionChange = (id: string, position: { row: number; col: number }) => {
+  const handleGridItemPositionChange = (id: string, position: { x: number; y: number }) => {
     setGridItems(prev => prev.map(item => (item.id === id ? { ...item, position } : item)));
   };
 
-  const findEmptyCell = (mouseX: number, mouseY: number) => {
-    const gridRect = document.querySelector('.grid-section')?.getBoundingClientRect();
-    if (!gridRect) return { row: 0, col: 0 };
+  const handleRemoveFromGrid = (id: string) => {
+    setGridItems(prev => prev.filter(item => item.id !== id));
+  };
 
-    const relativeX = mouseX - gridRect.left;
-    const relativeY = mouseY - gridRect.top;
+  const findFreePosition = () => {
+    // Define grid positions with spacing
+    const spacing = 20;
+    const { width } = gridDimensions;
 
-    const cellWidth = CARD_WIDTH + GRID_GAP;
-    const cellHeight = CARD_HEIGHT + GRID_GAP;
-
-    let col = Math.floor(relativeX / cellWidth);
-    let row = Math.floor(relativeY / cellHeight);
-
-    col = Math.min(Math.max(0, col), gridDimensions.cols - 1);
-    row = Math.min(Math.max(0, row), gridDimensions.rows - 1);
-
-    const isOccupied = gridItems.some(item => item.position.row === row && item.position.col === col);
-
-    if (!isOccupied) {
-      return { row, col };
+    if (!width) {
+      return { x: 20, y: 20 }; // Default if grid not measured yet
     }
 
-    for (let row = 0; row < gridDimensions.rows; row++) {
-      for (let col = 0; col < gridDimensions.cols; col++) {
-        const isOccupied = gridItems.some(item => item.position.row === row && item.position.col === col);
-        if (!isOccupied) {
-          return { row, col };
+    // Calculate columns based on grid width
+    const maxCol = Math.max(1, Math.floor((width - CARD_WIDTH) / (CARD_WIDTH + spacing)));
+
+    // Try to find an empty space in a grid-like pattern
+    for (let row = 0; row < 100; row++) {
+      // Limit rows to prevent infinite loop
+      for (let col = 0; col < maxCol; col++) {
+        const x = col * (CARD_WIDTH + spacing) + spacing;
+        const y = row * (CARD_HEIGHT + spacing) + spacing;
+
+        // Check if this position overlaps with any existing card
+        const isOverlapping = gridItems.some(item => {
+          return Math.abs(item.position.x - x) < CARD_WIDTH && Math.abs(item.position.y - y) < CARD_HEIGHT;
+        });
+
+        if (!isOverlapping) {
+          return { x, y };
         }
       }
     }
 
-    return { row: 0, col: 0 };
-  };
-  const handleRemoveFromIntake = (id: string) => {
-    setIntakeTimestamps(prev => prev.filter(timestamp => timestamp.id !== id));
-  };
-
-  const handleRemoveFromGrid = (id: string) => {
-    setGridItems((prev: GridItem[]) => {
-      const filtered = prev.filter((item: GridItem) => item.id !== id);
-      return filtered.map((item: GridItem, index: number) => ({
-        ...item,
-        gridArea: `area-${index}`,
-      }));
-    });
-  };
-
-  const handleDragEnd = (result: any) => {
-    const { source, destination } = result;
-    if (!destination) {
-      return;
-    }
-
-    // moving within grid
-    if (source.droppableId === 'grid' && destination.droppableId === 'grid') {
-      // const reorderedGridItems = Array.from(gridItems);
-      // const [movedItem] = reorderedGridItems.splice(source.index, 1);
-      // reorderedGridItems.splice(destination.index, 0, movedItem);
-      // const updatedGridItems = reorderedGridItems.map((item, index) => ({
-      //   ...item,
-      //   gridArea: `area-${index}`,
-      // }));
-      // setGridItems(updatedGridItems);
-      // return;
-    }
-
-    // moving from intake to grid
-    if (source.droppableId === 'intake' && destination.droppableId === 'grid') {
-      const timestampData = intakeTimestamps[source.index];
-      const dropPosition = findEmptyCell(result.clientX, result.clientY);
-
-      const { isNew, ...cleanTimestampData } = timestampData;
-      const newGridItem: GridItem = {
-        id: timestampData.id,
-        timestampData: cleanTimestampData,
-        gridArea: `area-${gridItems.length}`,
-        position: dropPosition,
+    // Fallback - place slightly offset from last card
+    const lastItem = gridItems[gridItems.length - 1];
+    if (lastItem) {
+      return {
+        x: (lastItem.position.x + 30) % (width - CARD_WIDTH),
+        y: lastItem.position.y + 30,
       };
-      setGridItems(prev => [...prev, newGridItem]);
     }
+
+    // Default position for first card
+    return { x: 20, y: 20 };
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="app-container">
-        <div className="app-layout">
-          <div className="left-panel">
-            <IntakeSection
-              timestamps={intakeTimestamps}
-              onDeleteTimestamp={handleRemoveFromIntake}
-              handleClear={clearIntakeTimestamps}
-            />
-          </div>
-          <div className="right-panel">
-            <GridSection
-              gridItems={gridItems}
-              onDeleteGridItem={handleRemoveFromGrid}
-              handleClear={clearGridTimestamps}
-              onGridResize={handleGridResize}
-              onDragEnd={handleGridItemPositionChange}
-            />
-          </div>
+    <div className="app-container">
+      <div className="app-layout">
+        <div className="right-panel">
+          <GridSection
+            gridItems={gridItems}
+            onDeleteGridItem={handleRemoveFromGrid}
+            onGridItemPositionChange={handleGridItemPositionChange}
+            handleClear={clearGridTimestamps}
+            onGridResize={handleGridResize}
+          />
         </div>
       </div>
-    </DragDropContext>
+    </div>
   );
 };
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
