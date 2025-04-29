@@ -1,5 +1,5 @@
 export function isValidTimestamp(timestamp: string): boolean {
-  if (!timestamp) {
+  if (!timestamp || isNaN(Number(timestamp))) {
     return false;
   }
 

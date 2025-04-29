@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Draggable from 'react-draggable';
 import TimestampCard, { CARD_HEIGHT, CARD_WIDTH } from './TimestampCard';
 import { GridItem } from '../../types';
@@ -8,7 +8,8 @@ interface GridSectionProps {
   onDeleteGridItem: (id: string) => void;
   onGridItemPositionChange: (id: string, position: { x: number; y: number }) => void;
   handleClear: () => void;
-  onGridResize: (dimensions: { width: number; height: number }) => void;
+  gridRef: React.RefObject<HTMLDivElement>;
+  gridDimensions: { width: number; height: number };
 }
 
 const GridSection: React.FC<GridSectionProps> = ({
@@ -16,35 +17,10 @@ const GridSection: React.FC<GridSectionProps> = ({
   onDeleteGridItem,
   onGridItemPositionChange,
   handleClear,
-  onGridResize,
+  gridRef,
+  gridDimensions,
 }) => {
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [gridDimensions, setGridDimensions] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
-
-  const updateGridDimensions = () => {
-    if (!gridRef.current) return;
-
-    const containerWidth = gridRef.current.clientWidth;
-    const containerHeight = gridRef.current.clientHeight;
-
-    setGridDimensions({ width: containerWidth, height: containerHeight });
-    if (onGridResize) {
-      onGridResize({ width: containerWidth, height: containerHeight });
-    }
-  };
-
-  useEffect(() => {
-    updateGridDimensions();
-
-    const handleResize = () => {
-      updateGridDimensions();
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   const handleDragStart = () => {
     setIsDragging(true);
@@ -58,6 +34,14 @@ const GridSection: React.FC<GridSectionProps> = ({
 
     onGridItemPositionChange(id, { x, y });
   };
+
+  console.log(
+    'Rendering grid items:',
+    gridItems.map(item => ({
+      id: item.id,
+      position: item.position,
+    }))
+  );
 
   return (
     <>
@@ -84,6 +68,7 @@ const GridSection: React.FC<GridSectionProps> = ({
               key={item.id}
               handle=".drag-handle"
               position={item.position}
+              defaultPosition={item.position}
               bounds="parent"
               onStart={handleDragStart}
               onStop={(_, data) => handleDragStop(item.id, data)}
