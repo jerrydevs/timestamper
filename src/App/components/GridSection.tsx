@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Draggable from 'react-draggable';
 import TimestampCard, { CARD_HEIGHT, CARD_WIDTH } from './TimestampCard';
 import { GridItem } from '../../types';
@@ -34,14 +34,6 @@ const GridSection: React.FC<GridSectionProps> = ({
 
     onGridItemPositionChange(id, { x, y });
   };
-
-  console.log(
-    'Rendering grid items:',
-    gridItems.map(item => ({
-      id: item.id,
-      position: item.position,
-    }))
-  );
 
   return (
     <>

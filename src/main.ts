@@ -61,8 +61,6 @@ app.whenReady().then(async () => {
       forceDownload: true
     });
 
-    console.log('Extension path:', result.path);
-
     await session.defaultSession.loadExtension(result.path, {
       allowFileAccess: true
     });
